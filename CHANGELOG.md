@@ -1,6 +1,38 @@
 Changelog
 =========
 
+__3.0.6a__
+----------
+
+*   Reverted GetUserName API usage on Windows. Fixed bug with missing library.
+*   Fixed bug in the Calculator example, preventing it's window to be raised
+    on Windows.
+
+__3.0.5a__
+----------
+
+*   Fixed a memory leak in the SingleApplicationPrivate destructor.
+
+    _Sergei Moiseev_
+
+__3.0.4a__
+----------
+
+*   Fixed shadow and uninitialised variable warnings.
+
+    _Paul Walmsley_
+
+__3.0.3a__
+----------
+
+*   Removed Microsoft Windows specific code for getting username due to
+    multiple problems and compiler differences on Windows platforms. On
+    Windows the shared memory block in User mode now includes the user's
+    home path (which contains the user's username).
+
+*   Explicitly getting absolute path of the user's home directory as on Unix
+    a relative path (`~`) may be returned.
+
 __3.0.2a__
 ----------
 

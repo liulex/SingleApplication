@@ -1,7 +1,7 @@
 SingleApplication
 =================
 
-This is a replacement of the QSingleApplication for `Qt5`.
+This is a replacement of the QtSingleApplication for `Qt5`.
 
 Keeps the Primary Instance of your Application and kills each subsequent
 instances. It can (if enabled) spawn secondary (non-related to the primary)
@@ -226,8 +226,6 @@ be user wide.*
 
 Versioning
 ----------
-
-The current library versions is `3.0.2a`.
 
 Each major version introduces either very significant changes or is not
 backwards compatible with the previous version. Minor versions only add

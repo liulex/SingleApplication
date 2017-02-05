@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 
+#include <QtCore/QDir>
 #include <QtCore/QProcess>
 #include <QtCore/QByteArray>
 #include <QtCore/QSemaphore>
@@ -51,7 +52,19 @@ SingleApplicationPrivate::SingleApplicationPrivate( SingleApplication *q_ptr ) :
 
 SingleApplicationPrivate::~SingleApplicationPrivate()
 {
-    cleanUp();
+    if( socket != nullptr ) {
+        socket->close();
+        delete socket;
+    }
+    memory->lock();
+    InstancesInfo* inst = (InstancesInfo*)memory->data();
+    if( server != nullptr ) {
+        server->close();
+        delete server;
+        inst->primary = false;
+    }
+    memory->unlock();
+    delete memory;
 }
 
 void SingleApplicationPrivate::genBlockServerName( int timeout )
@@ -88,14 +101,17 @@ void SingleApplicationPrivate::genBlockServerName( int timeout )
         }
 #endif
 #ifdef Q_OS_UNIX
-        QString username;
         QProcess process;
         process.start( "whoami" );
         if( process.waitForFinished( timeout ) &&
             process.exitCode() == QProcess::NormalExit) {
             appData.addData( process.readLine() );
         } else {
-            appData.addData( QStandardPaths::standardLocations( QStandardPaths::HomeLocation ).join("").toUtf8() );
+            appData.addData(
+                QDir(
+                    QStandardPaths::standardLocations( QStandardPaths::HomeLocation ).first()
+                ).absolutePath().toUtf8()
+            );
         }
 #endif
     }
@@ -239,21 +255,6 @@ void SingleApplicationPrivate::connectToPrimary( int msecs, char connectionType 
     QMutex SingleApplicationPrivate::sharedMemMutex;
 #endif
 
-void SingleApplicationPrivate::cleanUp() {
-    if( socket != nullptr ) {
-        socket->close();
-        delete socket;
-    }
-    memory->lock();
-    InstancesInfo* inst = (InstancesInfo*)memory->data();
-    if( server != nullptr ) {
-        server->close();
-        inst->primary = false;
-    }
-    memory->unlock();
-    delete memory;
-}
-
 /**
  * @brief Executed when a connection has been made to the LocalServer
  */
@@ -261,25 +262,27 @@ void SingleApplicationPrivate::slotConnectionEstablished()
 {
     Q_Q(SingleApplication);
 
-    QLocalSocket *socket = server->nextPendingConnection();
+    QLocalSocket *nextConnSocket = server->nextPendingConnection();
 
     // Verify that the new connection follows the SingleApplication protocol
-    char connectionType;
+    char connectionType = '\0'; // Invalid connection
     quint32 instanceId;
     QByteArray initMsg, tmp;
-    bool invalidConnection = false;
-    if( socket->waitForReadyRead( 100 ) ) {
-        tmp = socket->read( blockServerName.length() );
+    if( nextConnSocket->waitForReadyRead( 100 ) ) {
+        tmp = nextConnSocket->read( blockServerName.length() );
         // Verify that the socket data start with blockServerName
         if( tmp == blockServerName.toLatin1() ) {
             initMsg = tmp;
-            tmp = socket->read(1);
-            // Verify that the next charecter is N/S/R (connecion type)
+            // Verify that the next character is N/S/R (connection type)
             // Stands for New Instance/Secondary Instance/Reconnect
-            if( tmp == "N" || tmp == "S" || tmp == "R" ) {
-                connectionType = tmp.at(0);
-                initMsg += tmp;
-                tmp = socket->read( sizeof(quint32) );
+            connectionType = nextConnSocket->read( 1 )[0];
+            switch( connectionType ) {
+            case 'N':
+            case 'S':
+            case 'R':
+            {
+                initMsg += connectionType;
+                tmp = nextConnSocket->read( sizeof(quint32) );
                 const char * data = tmp.constData();
                 instanceId = (quint32)*data;
                 initMsg += tmp;
@@ -288,41 +291,37 @@ void SingleApplicationPrivate::slotConnectionEstablished()
                     qChecksum( initMsg.constData(), initMsg.length() ),
                     256
                 );
-                tmp = socket->read( checksum.length() );
-                if( checksum != tmp ) {
-                    invalidConnection = true;
-                }
-            } else {
-                invalidConnection = true;
+                tmp = nextConnSocket->read( checksum.length() );
+                if( checksum == tmp )
+                    break; // Otherwise set to invalid connection (next line)
             }
-        } else {
-            invalidConnection = true;
+            default:
+                connectionType = '\0'; // Invalid connection
+            }
         }
-    } else {
-        invalidConnection = true;
     }
 
-    if( invalidConnection ) {
-        socket->close();
-        delete socket;
+    if( connectionType == '\0' ) {
+        nextConnSocket->close();
+        delete nextConnSocket;
         return;
     }
 
     QObject::connect(
-        socket,
+        nextConnSocket,
         &QLocalSocket::aboutToClose,
         this,
-        [socket, instanceId, this]() {
-            Q_EMIT this->slotClientConnectionClosed( socket, instanceId );
+        [nextConnSocket, instanceId, this]() {
+            Q_EMIT this->slotClientConnectionClosed( nextConnSocket, instanceId );
         }
     );
 
     QObject::connect(
-        socket,
+        nextConnSocket,
         &QLocalSocket::readyRead,
         this,
-        [socket, instanceId, this]() {
-            Q_EMIT this->slotDataAvailable( socket, instanceId );
+        [nextConnSocket, instanceId, this]() {
+            Q_EMIT this->slotDataAvailable( nextConnSocket, instanceId );
         }
     );
 
@@ -334,22 +333,22 @@ void SingleApplicationPrivate::slotConnectionEstablished()
         Q_EMIT q->instanceStarted();
     }
 
-    if( socket->bytesAvailable() > 0 ) {
-        Q_EMIT this->slotDataAvailable( socket, instanceId );
+    if( nextConnSocket->bytesAvailable() > 0 ) {
+        Q_EMIT this->slotDataAvailable( nextConnSocket, instanceId );
     }
 }
 
-void SingleApplicationPrivate::slotDataAvailable( QLocalSocket *socket, quint32 instanceId )
+void SingleApplicationPrivate::slotDataAvailable( QLocalSocket *dataSocket, quint32 instanceId )
 {
     Q_Q(SingleApplication);
-    Q_EMIT q->receivedMessage( instanceId, socket->readAll() );
+    Q_EMIT q->receivedMessage( instanceId, dataSocket->readAll() );
 }
 
-void SingleApplicationPrivate::slotClientConnectionClosed( QLocalSocket *socket, quint32 instanceId )
+void SingleApplicationPrivate::slotClientConnectionClosed( QLocalSocket *closedSocket, quint32 instanceId )
 {
-    if( socket->bytesAvailable() > 0 )
-        Q_EMIT slotDataAvailable( socket, instanceId  );
-    socket->deleteLater();
+    if( closedSocket->bytesAvailable() > 0 )
+        Q_EMIT slotDataAvailable( closedSocket, instanceId  );
+    closedSocket->deleteLater();
 }
 
 /**
