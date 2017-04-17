@@ -85,16 +85,10 @@ void SingleApplicationPrivate::genBlockServerName( int timeout )
     }
     
     if( ! (options & SingleApplication::Mode::ExcludeAppPath) ) {
-        QString path = SingleApplication::app_t::applicationFilePath();
-        if( options & SingleApplication::Mode::ResolveSymLink ) {
-            QFileInfo fi(path);
-            if ( fi.isSymLink() )
-                path = fi.symLinkTarget();
-        }
 #ifdef Q_OS_WIN
-        appData.addData( path.toLower().toUtf8() );
+        appData.addData( SingleApplication::app_t::applicationFilePath().toLower().toUtf8() );
 #else
-        appData.addData( path.toUtf8() );
+        appData.addData( SingleApplication::app_t::applicationFilePath().toUtf8() );
 #endif
     }
 
