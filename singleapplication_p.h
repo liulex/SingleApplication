@@ -51,7 +51,7 @@ public:
     SingleApplicationPrivate( SingleApplication *q_ptr );
      ~SingleApplicationPrivate();
 
-    void genBlockServerName( int msecs );
+    void genBlockServerName( const QByteArray &extraHashData, int msecs );
     void startPrimary( bool resetMemory );
     void startSecondary();
     void connectToPrimary( int msecs, char connectionType );

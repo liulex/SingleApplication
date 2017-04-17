@@ -72,13 +72,16 @@ SingleApplicationPrivate::~SingleApplicationPrivate()
     delete memory;
 }
 
-void SingleApplicationPrivate::genBlockServerName( int timeout )
+void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashData, int timeout )
 {
     QCryptographicHash appData( QCryptographicHash::Sha256 );
     appData.addData( "SingleApplication", 17 );
     appData.addData( SingleApplication::app_t::applicationName().toUtf8() );
     appData.addData( SingleApplication::app_t::organizationName().toUtf8() );
     appData.addData( SingleApplication::app_t::organizationDomain().toUtf8() );
+
+    if ( !extraHashData.isEmpty() )
+        appData.addData( extraHashData );
 
     if( ! (options & SingleApplication::Mode::ExcludeAppVersion) ) {
         appData.addData( SingleApplication::app_t::applicationVersion().toUtf8() );
@@ -362,7 +365,7 @@ void SingleApplicationPrivate::slotClientConnectionClosed( QLocalSocket *closedS
  * @param argv
  * @param {bool} allowSecondaryInstances
  */
-SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSecondary, Options options, int timeout )
+SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSecondary, Options options, const QByteArray &extraHashData, int timeout )
     : app_t( argc, argv ), d_ptr( new SingleApplicationPrivate( this ) )
 {
     Q_D(SingleApplication);
@@ -372,7 +375,7 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
 
     // Generating an application ID used for identifying the shared memory
     // block and QLocalServer
-    d->genBlockServerName( timeout );
+    d->genBlockServerName( extraHashData, timeout );
 
     // Guarantee thread safe behaviour with a shared memory block. Also by
     // explicitly attaching it and then deleting it we make sure that the
