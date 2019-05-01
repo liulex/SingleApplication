@@ -71,7 +71,7 @@ public:
     SingleApplicationPrivate( SingleApplication *q_ptr );
      ~SingleApplicationPrivate();
 
-    void genBlockServerName();
+    void genBlockServerName( const QByteArray &extraHashData );
     void initializeMemoryBlock();
     void startPrimary();
     void startSecondary();

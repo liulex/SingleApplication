@@ -36,7 +36,7 @@
  * @param argv
  * @param {bool} allowSecondaryInstances
  */
-SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSecondary, Options options, int timeout )
+SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSecondary, Options options, const QByteArray &extraHashData, int timeout )
     : app_t( argc, argv ), d_ptr( new SingleApplicationPrivate( this ) )
 {
     Q_D(SingleApplication);
@@ -46,7 +46,7 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
 
     // Generating an application ID used for identifying the shared memory
     // block and QLocalServer
-    d->genBlockServerName();
+    d->genBlockServerName( extraHashData );
 
 #ifdef Q_OS_UNIX
     // By explicitly attaching it and then deleting it we make sure that the

@@ -80,13 +80,17 @@ SingleApplicationPrivate::~SingleApplicationPrivate()
     delete memory;
 }
 
-void SingleApplicationPrivate::genBlockServerName()
+void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashData )
 {
     QCryptographicHash appData( QCryptographicHash::Sha256 );
     appData.addData( "SingleApplication", 17 );
     appData.addData( SingleApplication::app_t::applicationName().toUtf8() );
     appData.addData( SingleApplication::app_t::organizationName().toUtf8() );
     appData.addData( SingleApplication::app_t::organizationDomain().toUtf8() );
+
+    if ( !extraHashData.isEmpty() ) {
+        appData.addData( extraHashData );
+    }
 
     if( ! (options & SingleApplication::Mode::ExcludeAppVersion) ) {
         appData.addData( SingleApplication::app_t::applicationVersion().toUtf8() );
