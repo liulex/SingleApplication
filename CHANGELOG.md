@@ -1,6 +1,37 @@
 Changelog
 =========
 
+__3.0.14__
+----------
+
+* Fixed uninitialised variables in the `SingleApplicationPrivate` constructor.
+
+__3.0.13a__
+----------
+
+* Process socket events asynchronously
+* Fix undefined variable error on Windows
+
+   _Francis Giraldeau_
+
+__3.0.12a__
+----------
+
+* Removed signal handling.
+
+__3.0.11a__
+----------
+
+* Fixed bug where the message sent by the second process was not received
+  correctly when the message is sent immediately following a connection.
+
+   _Francis Giraldeau_
+
+* Refactored code and implemented shared memory block consistency checks
+  via `qChecksum()` (CRC-16).
+* Explicit `qWarning` and `qCritical` when the library is unable to initialise
+  correctly.
+
 __3.0.10__
 ----------
 
