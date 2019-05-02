@@ -123,7 +123,7 @@ public:
 
 Q_SIGNALS:
     void instanceStarted();
-    void receivedMessage( quint32 instanceId, QByteArray message );
+    void receivedMessage( quint32 instanceId, const QByteArray &message );
 
 private:
     SingleApplicationPrivate *d_ptr;
