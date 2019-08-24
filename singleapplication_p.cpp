@@ -33,7 +33,6 @@
 #include <cstddef>
 
 #include <QtCore/QDir>
-#include <QtCore/QProcess>
 #include <QtCore/QByteArray>
 #include <QtCore/QSemaphore>
 #include <QtCore/QDataStream>
@@ -117,18 +116,7 @@ void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashDa
         }
 #endif
 #ifdef Q_OS_UNIX
-        QProcess process;
-        process.start( "whoami" );
-        if( process.waitForFinished( 100 ) &&
-            process.exitCode() == QProcess::NormalExit) {
-            appData.addData( process.readLine() );
-        } else {
-            appData.addData(
-                QDir(
-                    QStandardPaths::standardLocations( QStandardPaths::HomeLocation ).first()
-                ).absolutePath().toUtf8()
-            );
-        }
+        appData.addData(qgetenv("USER"));
 #endif
     }
 
