@@ -69,7 +69,7 @@ public:
     Q_DECLARE_PUBLIC(SingleApplication)
 
     SingleApplicationPrivate( SingleApplication *q_ptr );
-     ~SingleApplicationPrivate();
+     ~SingleApplicationPrivate() override;
 
     void genBlockServerName( const QByteArray &extraHashData );
     void initializeMemoryBlock();

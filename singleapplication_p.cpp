@@ -163,7 +163,7 @@ void SingleApplicationPrivate::startPrimary()
     InstancesInfo* inst = static_cast <InstancesInfo*>( memory->data() );
 
     inst->primary = true;
-    inst->primaryPid = q->applicationPid();
+    inst->primaryPid = SingleApplication::applicationPid();
     inst->checksum = blockChecksum();
 
     instanceNumber = 0;
