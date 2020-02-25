@@ -78,7 +78,7 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
     } else {
         // Attempt to attach to the memory segment
         if( ! d->memory->attach() ) {
-            qCritical() << "SingleApplication: Unable to attach to shared memory block.";
+            qCritical() << "SingleApplication: Unable to attach to shared memory block:" << d->memory->error();
             qCritical() << d->memory->errorString();
             delete d;
             ::exit( EXIT_FAILURE );
