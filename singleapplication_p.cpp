@@ -34,15 +34,19 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QByteArray>
-#include <QtCore/QSemaphore>
 #include <QtCore/QDataStream>
-#include <QtCore/QStandardPaths>
 #include <QtCore/QCryptographicHash>
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QLocalSocket>
 
 #include "singleapplication.h"
 #include "singleapplication_p.h"
+
+#ifdef Q_OS_UNIX
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <pwd.h>
+#endif
 
 #ifdef Q_OS_WIN
     #include <windows.h>
@@ -112,11 +116,20 @@ void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashDa
         if( GetUserNameW( username, &usernameLength ) ) {
             appData.addData( QString::fromWCharArray(username).toUtf8() );
         } else {
-            appData.addData( QStandardPaths::standardLocations( QStandardPaths::HomeLocation ).join("").toUtf8() );
+            appData.addData( qgetenv("USERNAME") );
         }
 #endif
 #ifdef Q_OS_UNIX
-        appData.addData(qgetenv("USER"));
+        QByteArray username;
+        uid_t uid = geteuid();
+        struct passwd *pw = getpwuid(uid);
+        if( pw ) {
+            username = pw->pw_name;
+        }
+        if( username.isEmpty() ) {
+            username = qgetenv("USER");
+        }
+        appData.addData(username);
 #endif
     }
 
@@ -163,7 +176,7 @@ void SingleApplicationPrivate::startPrimary()
     InstancesInfo* inst = static_cast <InstancesInfo*>( memory->data() );
 
     inst->primary = true;
-    inst->primaryPid = SingleApplication::applicationPid();
+    inst->primaryPid = q->applicationPid();
     inst->checksum = blockChecksum();
 
     instanceNumber = 0;
@@ -287,7 +300,7 @@ void SingleApplicationPrivate::slotConnectionEstablished()
                 readInitMessageBody(nextConnSocket);
                 break;
             case StageConnected:
-                this->slotDataAvailable( nextConnSocket, info.instanceId );
+                Q_EMIT this->slotDataAvailable( nextConnSocket, info.instanceId );
                 break;
             default:
                 break;
@@ -385,7 +398,7 @@ void SingleApplicationPrivate::readInitMessageBody( QLocalSocket *sock )
     }
 
     if (sock->bytesAvailable() > 0) {
-        this->slotDataAvailable( sock, instanceId );
+        Q_EMIT this->slotDataAvailable( sock, instanceId );
     }
 }
 
@@ -398,5 +411,5 @@ void SingleApplicationPrivate::slotDataAvailable( QLocalSocket *dataSocket, quin
 void SingleApplicationPrivate::slotClientConnectionClosed( QLocalSocket *closedSocket, quint32 instanceId )
 {
     if( closedSocket->bytesAvailable() > 0 )
-        slotDataAvailable( closedSocket, instanceId  );
+        Q_EMIT slotDataAvailable( closedSocket, instanceId  );
 }

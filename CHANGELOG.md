@@ -1,10 +1,48 @@
 Changelog
 =========
 
+__3.0.19__
+----------
+
+* Fixed code warning for depricated functions in Qt 5.10 related to `QTime` and `qrand()`. 
+
+   _Hennadii Chernyshchyk_  
+   _Anton Filimonov_  
+   _Jonas Kvinge_
+   
+__3.0.18__
+----------
+
+* Fallback to standard QApplication class on iOS and Android systems where
+  the library is not supported.
+  
+* Added Build CI tests to verify the library builds successfully on Linux, Windows and MacOS  across multiple Qt versions.
+
+  _Anton Filimonov_
+
+__3.0.17__
+----------
+
+* Fixed compilation warning/error caused by `geteuid()` on unix based systems.
+
+   _Iakov Kirilenko_
+
+* Added CMake support
+
+   _Hennadii Chernyshchyk_
+
+__3.0.16__
+----------
+
+* Use geteuid and getpwuid to get username on Unix, fallback to environment variable.
+
+   _Jonas Kvinge_
+
 __3.0.15__
 ----------
 
 * Bug Fix: sendMessage() might return false even though data was actually written.
+
    _Jonas Kvinge_
 
 __3.0.14__
