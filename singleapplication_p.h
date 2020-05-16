@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) Itay Grudev 2015 - 2016
+// Copyright (c) Itay Grudev 2015 - 2020
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,7 @@ struct InstancesInfo {
     quint32 secondary;
     qint64 primaryPid;
     quint16 checksum;
+    char primaryUser[128];
 };
 
 struct ConnectionInfo {
@@ -71,6 +72,7 @@ public:
     SingleApplicationPrivate( SingleApplication *q_ptr );
      ~SingleApplicationPrivate() override;
 
+    QString getUsername();
     void genBlockServerName( const QByteArray &extraHashData );
     void initializeMemoryBlock();
     void startPrimary();
@@ -78,6 +80,7 @@ public:
     void connectToPrimary(int msecs, ConnectionType connectionType );
     quint16 blockChecksum();
     qint64 primaryPid();
+    QString primaryUser();
     void readInitMessageHeader(QLocalSocket *socket);
     void readInitMessageBody(QLocalSocket *socket);
 
