@@ -85,13 +85,15 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
         }
     }
 
-    InstancesInfo* inst = static_cast<InstancesInfo*>( d->memory->data() );
+    InstancesInfo* inst = nullptr;
     QElapsedTimer time;
     time.start();
 
     // Make sure the shared memory block is initialised and in consistent state
     while( true ) {
         d->memory->lock();
+
+        inst = static_cast<InstancesInfo*>( d->memory->data() );
 
         if( d->blockChecksum() == inst->checksum ) break;
 
