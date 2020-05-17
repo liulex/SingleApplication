@@ -64,17 +64,10 @@ SingleApplicationPrivate::SingleApplicationPrivate( SingleApplication *q_ptr )
 
 SingleApplicationPrivate::~SingleApplicationPrivate()
 {
-    if( socket != nullptr ) {
-        socket->close();
-        delete socket;
-    }
-
     if( memory != nullptr ) {
         memory->lock();
         InstancesInfo* inst = static_cast<InstancesInfo*>(memory->data());
-        if( server != nullptr ) {
-            server->close();
-            delete server;
+        if( instanceNumber == 0 ) {
             inst->primary = false;
             inst->primaryPid = -1;
             inst->primaryUser[0] =  '\0';
@@ -83,6 +76,16 @@ SingleApplicationPrivate::~SingleApplicationPrivate()
         memory->unlock();
 
         delete memory;
+    }
+
+    if( socket != nullptr ) {
+        socket->close();
+        delete socket;
+    }
+
+    if( server != nullptr ) {
+        server->close();
+        delete server;
     }
 }
 
@@ -200,6 +203,10 @@ void SingleApplicationPrivate::startPrimary()
 
 void SingleApplicationPrivate::startSecondary()
 {
+    InstancesInfo* inst = static_cast <InstancesInfo*>( memory->data() );
+    inst->secondary += 1;
+    inst->checksum = blockChecksum();
+    instanceNumber = inst->secondary;
 }
 
 void SingleApplicationPrivate::connectToPrimary( int msecs, ConnectionType connectionType )

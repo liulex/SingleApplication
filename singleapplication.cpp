@@ -121,9 +121,6 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
 
     // Check if another instance can be started
     if( allowSecondary ) {
-        inst->secondary += 1;
-        inst->checksum = d->blockChecksum();
-        d->instanceNumber = inst->secondary;
         d->startSecondary();
         if( d->options & Mode::SecondaryNotification ) {
             d->connectToPrimary( timeout, SingleApplicationPrivate::SecondaryInstance );
