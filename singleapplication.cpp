@@ -59,6 +59,23 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
     // block and QLocalServer
     d->genBlockServerName( extraHashData );
 
+#ifdef USE_LOCK_FILE
+    d->initiliazeLockFile();
+
+    if ( d->isLocked() ) {
+        d->startPrimary();
+        return;
+    }
+
+    // Check if another instance can be started
+    if( allowSecondary ) {
+        d->startSecondary();
+        if( d->options & Mode::SecondaryNotification ) {
+            d->connectToPrimary( timeout, SingleApplicationPrivate::SecondaryInstance );
+        }
+        return;
+    }
+#else
 #ifdef Q_OS_UNIX
     // By explicitly attaching it and then deleting it we make sure that the
     // memory is deleted even after the process has crashed on Unix.
@@ -130,6 +147,7 @@ SingleApplication::SingleApplication( int &argc, char *argv[], bool allowSeconda
     }
 
     d->memory->unlock();
+#endif
 
     d->connectToPrimary( timeout, SingleApplicationPrivate::NewInstance );
 

@@ -9,6 +9,10 @@ SOURCES += $$PWD/singleapplication.cpp \
 
 INCLUDEPATH += $$PWD
 
+macx {
+    DEFINES += USE_LOCK_FILE
+}
+
 win32 {
     msvc:LIBS += Advapi32.lib
     gcc:LIBS += -ladvapi32

@@ -37,6 +37,11 @@
 #include <QtNetwork/QLocalSocket>
 #include "singleapplication.h"
 
+#ifdef USE_LOCK_FILE
+//#include "qtlockedfile.h"
+class QLockFile;
+#endif
+
 struct InstancesInfo {
     bool primary;
     quint32 secondary;
@@ -74,7 +79,14 @@ public:
 
     QString getUsername();
     void genBlockServerName( const QByteArray &extraHashData );
+
+#ifdef USE_LOCK_FILE
+    void initiliazeLockFile();
+    bool isLocked();
+#else
     void initializeMemoryBlock();
+#endif
+
     void startPrimary();
     void startSecondary();
     void connectToPrimary(int msecs, ConnectionType connectionType );
@@ -85,7 +97,11 @@ public:
     void readInitMessageBody(QLocalSocket *socket);
 
     SingleApplication *q_ptr;
+#ifdef USE_LOCK_FILE
+    QLockFile *lockFile;
+#else
     QSharedMemory *memory;
+#endif
     QLocalSocket *socket;
     QLocalServer *server;
     quint32 instanceNumber;

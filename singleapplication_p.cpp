@@ -38,9 +38,14 @@
 #include <QtCore/QCryptographicHash>
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QLocalSocket>
+#include <QStandardPaths>
 
 #include "singleapplication.h"
 #include "singleapplication_p.h"
+
+#ifdef USE_LOCK_FILE
+#include <QLockFile>
+#endif
 
 #ifdef Q_OS_UNIX
     #include <unistd.h>
@@ -58,12 +63,17 @@ SingleApplicationPrivate::SingleApplicationPrivate( SingleApplication *q_ptr )
 {
     server = nullptr;
     socket = nullptr;
+#ifdef USE_LOCK_FILE
+    lockFile = nullptr;
+#else
     memory = nullptr;
+#endif
     instanceNumber = -1;
 }
 
 SingleApplicationPrivate::~SingleApplicationPrivate()
 {
+#ifndef USE_LOCK_FILE
     if( memory != nullptr ) {
         memory->lock();
         InstancesInfo* inst = static_cast<InstancesInfo*>(memory->data());
@@ -77,6 +87,7 @@ SingleApplicationPrivate::~SingleApplicationPrivate()
 
         delete memory;
     }
+#endif
 
     if( socket != nullptr ) {
         socket->close();
@@ -154,6 +165,7 @@ void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashDa
     blockServerName = appData.result().toBase64().replace("/", "_");
 }
 
+#ifndef USE_LOCK_FILE
 void SingleApplicationPrivate::initializeMemoryBlock()
 {
     InstancesInfo* inst = static_cast<InstancesInfo*>( memory->data() );
@@ -163,10 +175,28 @@ void SingleApplicationPrivate::initializeMemoryBlock()
     inst->primaryUser[0] =  '\0';
     inst->checksum = blockChecksum();
 }
+#else
+void SingleApplicationPrivate::initiliazeLockFile()
+{
+    // Reset the number of connections
+    QString lockName = QStandardPaths::writableLocation(QStandardPaths::TempLocation)
+                       + QLatin1Char('/') + blockServerName
+                       + QLatin1String("-lockfile");
+    lockFile = new QLockFile(lockName);
+    lockFile->setStaleLockTime(0);
+}
+
+bool SingleApplicationPrivate::isLocked()
+{
+   return lockFile && (lockFile->isLocked() || lockFile->tryLock());
+}
+#endif
 
 void SingleApplicationPrivate::startPrimary()
 {
+#ifndef USE_LOCK_FILE
     Q_Q(SingleApplication);
+#endif
 
     // Successful creation means that no main process exists
     // So we start a QLocalServer to listen for connections
@@ -189,6 +219,7 @@ void SingleApplicationPrivate::startPrimary()
         &SingleApplicationPrivate::slotConnectionEstablished
     );
 
+#ifndef USE_LOCK_FILE
     // Reset the number of connections
     InstancesInfo* inst = static_cast <InstancesInfo*>( memory->data() );
 
@@ -197,16 +228,21 @@ void SingleApplicationPrivate::startPrimary()
     strncpy( inst->primaryUser, getUsername().toUtf8().data(), 127 );
     inst->primaryUser[127] = '\0';
     inst->checksum = blockChecksum();
+#endif
 
     instanceNumber = 0;
 }
 
 void SingleApplicationPrivate::startSecondary()
 {
+#ifndef USE_LOCK_FILE
     InstancesInfo* inst = static_cast <InstancesInfo*>( memory->data() );
     inst->secondary += 1;
     inst->checksum = blockChecksum();
     instanceNumber = inst->secondary;
+#else
+    instanceNumber = 1;
+#endif
 }
 
 void SingleApplicationPrivate::connectToPrimary( int msecs, ConnectionType connectionType )
@@ -266,14 +302,19 @@ void SingleApplicationPrivate::connectToPrimary( int msecs, ConnectionType conne
 
 quint16 SingleApplicationPrivate::blockChecksum()
 {
+#ifndef USE_LOCK_FILE
     return qChecksum(
        static_cast <const char *>( memory->data() ),
        offsetof( InstancesInfo, checksum )
    );
+#else
+    return 0;
+#endif
 }
 
 qint64 SingleApplicationPrivate::primaryPid()
 {
+#ifndef USE_LOCK_FILE
     qint64 pid;
 
     memory->lock();
@@ -282,10 +323,14 @@ qint64 SingleApplicationPrivate::primaryPid()
     memory->unlock();
 
     return pid;
+#else
+    return 0;
+#endif
 }
 
 QString SingleApplicationPrivate::primaryUser()
 {
+#ifndef USE_LOCK_FILE
     QByteArray username;
 
     memory->lock();
@@ -294,6 +339,9 @@ QString SingleApplicationPrivate::primaryUser()
     memory->unlock();
 
     return QString::fromUtf8( username );
+#else
+    return QString();
+#endif
 }
 
 /**
