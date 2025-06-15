@@ -131,7 +131,10 @@ public:
      * @note sendMessage() will return false if invoked from the primary
      * instance.
      */
-    bool sendMessage( const QByteArray &message, int timeout = 100 );
+    bool sendMessage(const QByteArray& message, int timeoutMsec = 100);
+
+    bool replyMessage(quint32 instanceId, const QByteArray& message, int timeoutMsec = 100);
+    QByteArray waitForReply(int timeoutMsec);
 
 Q_SIGNALS:
     void instanceStarted();

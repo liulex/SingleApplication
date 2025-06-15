@@ -300,6 +300,23 @@ void SingleApplicationPrivate::connectToPrimary( int msecs, ConnectionType conne
     }
 }
 
+bool SingleApplicationPrivate::writeToSecondary(quint32 instanceId,
+                                                const QByteArray& message,
+                                                int timeout) {
+    QMapIterator<QLocalSocket*, ConnectionInfo> i(connectionMap);
+    while (i.hasNext()) {
+        i.next();
+        if (i.value().instanceId == instanceId) {
+            QLocalSocket* s = i.key();
+            s->write(message);
+            bool dataWritten = s->waitForBytesWritten(timeout);
+            s->flush();
+            return dataWritten;
+        }
+    }
+    return false;
+}
+
 quint16 SingleApplicationPrivate::blockChecksum()
 {
 #ifndef USE_LOCK_FILE
