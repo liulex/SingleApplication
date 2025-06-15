@@ -183,18 +183,48 @@ QString SingleApplication::currentUser()
     return d->getUsername();
 }
 
-bool SingleApplication::sendMessage( const QByteArray &message, int timeout )
-{
+bool SingleApplication::sendMessage(const QByteArray& message, int timeoutMsec) {
     Q_D(SingleApplication);
 
     // Nobody to connect to
-    if( isPrimary() ) return false;
+    if (isPrimary()) {
+        return false;
+    }
 
     // Make sure the socket is connected
-    d->connectToPrimary( timeout,  SingleApplicationPrivate::Reconnect );
+    d->connectToPrimary(timeoutMsec, SingleApplicationPrivate::Reconnect);
 
     d->socket->write( message );
-    bool dataWritten = d->socket->waitForBytesWritten( timeout );
+    bool dataWritten = d->socket->waitForBytesWritten(timeoutMsec);
     d->socket->flush();
     return dataWritten;
+}
+
+bool SingleApplication::replyMessage(quint32 instanceId,
+                                     const QByteArray& message,
+                                     int timeoutMsec) {
+    Q_D(SingleApplication);
+
+    if (!isPrimary()) {
+        return false;
+    }
+
+    return d->writeToSecondary(instanceId, message, timeoutMsec);
+}
+
+QByteArray SingleApplication::waitForReply(int timeoutMsec) {
+    Q_D(SingleApplication);
+
+    // Nobody to connect to
+    if (isPrimary()) {
+        return {};
+    }
+
+    // Make sure the socket is connected
+    d->connectToPrimary(timeoutMsec, SingleApplicationPrivate::Reconnect);
+
+    if (d->socket->waitForReadyRead(timeoutMsec)) {
+        return d->socket->readAll();
+    }
+    return {};
 }

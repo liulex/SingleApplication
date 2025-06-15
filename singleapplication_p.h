@@ -78,9 +78,11 @@ public:
     void startPrimary();
     void startSecondary();
     void connectToPrimary(int msecs, ConnectionType connectionType );
+    bool writeToSecondary(quint32 instanceId, const QByteArray& message, int timeout);
     quint16 blockChecksum();
     qint64 primaryPid();
     QString primaryUser();
+    QVariant primaryProperty(const char* propertyName);
     void readInitMessageHeader(QLocalSocket *socket);
     void readInitMessageBody(QLocalSocket *socket);
 
