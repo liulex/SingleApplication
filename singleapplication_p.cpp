@@ -162,7 +162,8 @@ void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashDa
 
     // Replace the backslash in RFC 2045 Base64 [a-zA-Z0-9+/=] to comply with
     // server naming requirements.
-    blockServerName = appData.result().toBase64().replace("/", "_");
+    blockServerName = appData.result().toBase64(
+        QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 }
 
 #ifndef USE_LOCK_FILE
@@ -180,8 +181,8 @@ void SingleApplicationPrivate::initiliazeLockFile()
 {
     // Reset the number of connections
     QString lockName = QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-                       + QLatin1Char('/') + blockServerName
-                       + QLatin1String("-lockfile");
+                       + QLatin1String("/snipaste-") + blockServerName
+                       + QLatin1String(".lock");
     lockFile = new QLockFile(lockName);
     lockFile->setStaleLockTime(0);
 }
