@@ -151,7 +151,8 @@ void SingleApplicationPrivate::genBlockServerName( const QByteArray &extraHashDa
 
     // Replace the backslash in RFC 2045 Base64 [a-zA-Z0-9+/=] to comply with
     // server naming requirements.
-    blockServerName = appData.result().toBase64().replace("/", "_");
+    blockServerName = appData.result().toBase64(
+        QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 }
 
 void SingleApplicationPrivate::initializeMemoryBlock()
